@@ -35,10 +35,10 @@ type SimpleChaincode struct {
 var ballIndex []string
 
 type Ball struct{
-	Name string
-	Color string
-	Size int
-	User string
+	Name string `json:"name"`				//the fieldtags are needed to keep case from bouncing around
+	Color string `json:"color"`
+	Size int `json:"size"`
+	User string `json:"user"`
 }
 
 func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
@@ -231,7 +231,11 @@ func (t *SimpleChaincode) init_ball(stub *shim.ChaincodeStub, args []string) ([]
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
-	str := `{"name": "` + args[0] + `", "color": "` + args[1] + `", "size": "` + args[2] + `", "owner": "` + args[3] + `"}`
+	val, err := strconv.Atoi(args[2])
+	if err != nil {
+		val = 16
+	}
+	str := `{"name": "` + args[0] + `", "color": "` + args[1] + `", "size": "` + strconv.Itoa(val) + `", "user": "` + args[3] + `"}`
 
 	// Write the state back to the ledger
 	err = stub.PutState(args[0], []byte(str))							//store ball with id as key
