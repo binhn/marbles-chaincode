@@ -32,9 +32,9 @@ import (
 type SimpleChaincode struct {
 }
 
-var ballIndex []string
+var marbleIndex []string
 
-type Ball struct{
+type Marble struct{
 	Name string `json:"name"`				//the fieldtags are needed to keep case from bouncing around
 	Color string `json:"color"`
 	Size int `json:"size"`
@@ -92,8 +92,8 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.Write(stub, args)
 	} else if function == "readnames" {										// Read all variable names in chaincode state
 		return t.ReadNames(stub, args)
-	} else if function == "init_ball" {										//init_ball
-		return t.init_ball(stub, args)
+	} else if function == "init_marble" {									//init_marble
+		return t.init_marble(stub, args)
 	} else if function == "set_user" {										//set user permissions
 		return t.set_user(stub, args)
 	}
@@ -224,7 +224,7 @@ func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]
 // ============================================================================================================================
 // Init Person 
 // ============================================================================================================================
-func (t *SimpleChaincode) init_ball(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 
 	if len(args) != 4 {
@@ -233,20 +233,20 @@ func (t *SimpleChaincode) init_ball(stub *shim.ChaincodeStub, args []string) ([]
 
 	val, err := strconv.Atoi(args[2])
 	if err != nil {
-		val = 16
+		val = 16														//default value
 	}
 	str := `{"name": "` + args[0] + `", "color": "` + args[1] + `", "size": "` + strconv.Itoa(val) + `", "user": "` + args[3] + `"}`
 
 	// Write the state back to the ledger
-	err = stub.PutState(args[0], []byte(str))							//store ball with id as key
+	err = stub.PutState(args[0], []byte(str))							//store marble with id as key
 	if err != nil {
 		return nil, err
 	}
 	t.remember_me(stub, args[0])
 	
-	ballIndex = append(ballIndex, args[0])								//add ball name to index list
-	jsonAsBytes, _ := json.Marshal(ballIndex)
-	err = stub.PutState("ballIndex", jsonAsBytes)						//store name of ball
+	marbleIndex = append(marbleIndex, args[0])							//add marble name to index list
+	jsonAsBytes, _ := json.Marshal(marbleIndex)
+	err = stub.PutState("marbleIndex", jsonAsBytes)						//store name of marble
 
 	return nil, nil
 }
@@ -257,12 +257,12 @@ func (t *SimpleChaincode) init_ball(stub *shim.ChaincodeStub, args []string) ([]
 func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 	
-	ballAsBytes, err := stub.GetState(args[0])
+	marbleAsBytes, err := stub.GetState(args[0])
 	if err != nil {
 		return nil, errors.New("Failed to get thing")
 	}
-	res := Ball{}
-	json.Unmarshal(ballAsBytes, &res)
+	res := Marble{}
+	json.Unmarshal(marbleAsBytes, &res)
 	fmt.Println(res)
 	
 	/*for i,perm := range res.Users{
