@@ -73,6 +73,10 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	if err != nil {
 		return nil, err
 	}
+	
+	marbleIndex = marbleIndex[:0]
+	jsonAsBytes, _ := json.Marshal(marbleIndex)
+	err = stub.PutState("marbleIndex", jsonAsBytes)						//store name of marble
 
 	return nil, nil
 }
@@ -90,8 +94,6 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.Delete(stub, args)
 	} else if function == "write" {											// Writes a value to the chaincode state
 		return t.Write(stub, args)
-	} else if function == "readnames" {										// Read all variable names in chaincode state
-		return t.ReadNames(stub, args)
 	} else if function == "init_marble" {									//init_marble
 		return t.init_marble(stub, args)
 	} else if function == "set_user" {										//set user permissions
@@ -105,13 +107,13 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 // Deletes an entity from state
 func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 3")
+		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
 
-	A := args[0]
+	name := args[0]
 
 	// Delete the key from the state in ledger
-	err := stub.DelState(A)
+	err := stub.DelState(name)
 	if err != nil {
 		return nil, errors.New("Failed to delete state")
 	}
@@ -184,37 +186,19 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 }
 
 // ============================================================================================================================
-// Read Names return list of variables in state space
-// ============================================================================================================================
-func (t *SimpleChaincode) ReadNames(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	var err error
-
-	var ben = "_ben_knows"
-	var storedNames string
-	
-	storedNamesAsBytes, err := stub.GetState(ben)
-	if err != nil {
-		return nil, errors.New("Failed to get ben")
-	}
-	storedNames = string(storedNamesAsBytes)
-	fmt.Println(storedNames)
-	
-	return storedNamesAsBytes, nil
-}
-// ============================================================================================================================
 // Remember Me - remember the name of variables we stored in ledger 
 // ============================================================================================================================
 func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {		//dsh - to do, should probably not exist here, move to stub
 	var err error
-	var ben = "_ben_knows"
+	var all = "_all"
 	var storedNames string
-	storeNamesAsBytes, err := stub.GetState(ben)
+	storeNamesAsBytes, err := stub.GetState(all)
 	if err != nil {
-		return nil, errors.New("Failed to get ben")
+		return nil, errors.New("Failed to get _all")
 	}
 	storedNames = string(storeNamesAsBytes)
 	// Write the state back to the ledger
-	err = stub.PutState(ben, []byte(storedNames + "," + name))										//dsh - to do, should probably be json
+	err = stub.PutState(all, []byte(storedNames + "," + name))										//dsh - to do, should probably be json
 	if err != nil {
 		return nil, err
 	}
