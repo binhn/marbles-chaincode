@@ -33,6 +33,7 @@ type SimpleChaincode struct {
 }
 
 var marbleIndex []string
+var _all string = "_all"					//this name tracks all variables in chaincode state
 
 type Marble struct{
 	Name string `json:"name"`				//the fieldtags are needed to keep case from bouncing around
@@ -42,41 +43,34 @@ type Marble struct{
 }
 
 func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	var A, B string    																// Entities
-	var Aval, Bval int 																// Asset holdings
+	var Aval int 																	// Asset holdings
 	var err error
 
-	if len(args) != 4 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
 
 	// Initialize the chaincode
-	A = args[0]
-	Aval, err = strconv.Atoi(args[1])
+	Aval, err = strconv.Atoi(args[0])
 	if err != nil {
 		return nil, errors.New("Expecting integer value for asset holding")
 	}
-	B = args[2]
-	Bval, err = strconv.Atoi(args[3])
-	if err != nil {
-		return nil, errors.New("Expecting integer value for asset holding")
-	}
-	fmt.Printf("Aval = %d, Bval = %d\n", Aval, Bval)
+	fmt.Printf("Aval = %d\n", Aval)
 
 	// Write the state to the ledger
-	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
-	if err != nil {
-		return nil, err
-	}
-
-	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))
+	err = stub.PutState("a", []byte(strconv.Itoa(Aval)))
 	if err != nil {
 		return nil, err
 	}
 	
-	marbleIndex = marbleIndex[:0]
+	err = stub.PutState(_all, []byte(""))								//clear the _all list
+	if err != nil {
+		return nil, err
+	}
+
+	marbleIndex = marbleIndex[:0]										//clear the marble index
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
-	err = stub.PutState("marbleIndex", jsonAsBytes)						//store name of marble
+	err = stub.PutState("marbleIndex", jsonAsBytes)
 
 	return nil, nil
 }
@@ -190,15 +184,14 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 // ============================================================================================================================
 func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {		//dsh - to do, should probably not exist here, move to stub
 	var err error
-	var all = "_all"
 	var storedNames string
-	storeNamesAsBytes, err := stub.GetState(all)
+	storeNamesAsBytes, err := stub.GetState(_all)
 	if err != nil {
 		return nil, errors.New("Failed to get _all")
 	}
 	storedNames = string(storeNamesAsBytes)
 	// Write the state back to the ledger
-	err = stub.PutState(all, []byte(storedNames + "," + name))										//dsh - to do, should probably be json
+	err = stub.PutState(_all, []byte(storedNames + "," + name))										//dsh - to do, should probably be json
 	if err != nil {
 		return nil, err
 	}
