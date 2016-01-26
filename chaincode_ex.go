@@ -33,7 +33,8 @@ type SimpleChaincode struct {
 }
 
 var marbleIndex []string
-var _all string = "_all"					//this name tracks all variables in chaincode state
+var _allIndex []string						//store all variables names here
+var _all string = "_all"					//key name for above. tracks all variables in chaincode state
 
 type Marble struct{
 	Name string `json:"name"`				//the fieldtags are needed to keep case from bouncing around
@@ -112,6 +113,13 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 		return nil, errors.New("Failed to delete state")
 	}
 
+	for i,val := range marbleIndex{
+		if val == name{															//find the correct marble
+			marbleIndex = append(marbleIndex[:i], marbleIndex[i+1:]...)			//remove it
+			break
+		}
+	}
+	
 	return nil, nil
 }
 
@@ -184,17 +192,27 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 // ============================================================================================================================
 func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {		//dsh - to do, should probably not exist here, move to stub
 	var err error
-	var storedNames string
+	/*var storedNames string
 	storeNamesAsBytes, err := stub.GetState(_all)
 	if err != nil {
 		return nil, errors.New("Failed to get _all")
 	}
+
 	storedNames = string(storeNamesAsBytes)
 	// Write the state back to the ledger
 	err = stub.PutState(_all, []byte(storedNames + "," + name))										//dsh - to do, should probably be json
 	if err != nil {
 		return nil, err
 	}
+	*/
+	
+	_allIndex = append(_allIndex, name)									//add var name to index list
+	jsonAsBytes, _ := json.Marshal(_allIndex)
+	err = stub.PutState(_all, jsonAsBytes)
+	if err != nil {
+		return nil, err
+	}
+	
 	return nil, nil
 }
 
