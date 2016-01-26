@@ -64,7 +64,9 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 		return nil, err
 	}
 	
-	err = stub.PutState(_all, []byte(""))								//clear the _all list
+	_allIndex = _allIndex[:0]											//clear the _all index
+	jsonAsBytes1, _ := json.Marshal(_allIndex)
+	err = stub.PutState(_all, jsonAsBytes1)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +74,10 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	marbleIndex = marbleIndex[:0]										//clear the marble index
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
 	err = stub.PutState("marbleIndex", jsonAsBytes)
-
+	if err != nil {
+		return nil, err
+	}
+	
 	return nil, nil
 }
 
