@@ -135,8 +135,9 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	if function != "query" {
 		return nil, errors.New("Invalid query function name. Expecting \"query\"")
 	}
-	var name string // Entities
+	var name, jsonResp string // Entities
 	var err error
+
 
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
@@ -147,13 +148,26 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	// Get the state from the ledger
 	valAsbytes, err := stub.GetState(name)
 	if err != nil {
-		jsonResp := "{\"Error\":\"Failed to get state for " + name + "\"}"
+		jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
-	jsonResp := "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
-	fmt.Printf("Query Response:%s\n", jsonResp)
+	//jsonResp := "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
+	//fmt.Printf("Query Response:%s\n", jsonResp)
+	
+	if isJSON(string(valAsbytes)) {
+		jsonResp = "{\"" + name + "\":" + string(valAsbytes) + "}"
+	}else{
+		jsonResp = "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
+	}
+	
 	return []byte(jsonResp), nil
+}
+
+func isJSON(s string) bool {
+    var js map[string]interface{}
+    return json.Unmarshal([]byte(s), &js) == nil
+
 }
 
 func main() {
