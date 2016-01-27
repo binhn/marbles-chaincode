@@ -118,15 +118,22 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 		return nil, errors.New("Failed to delete state")
 	}
 
+	//remove marble from index
 	for i,val := range marbleIndex{
-		fmt.Println(strconv.Itoa(i) + "looking at " + val + " for " + name)
+		fmt.Println(strconv.Itoa(i) + " - looking at " + val + " for " + name)
 		if val == name{															//find the correct marble
 			fmt.Println("found it")
 			marbleIndex = append(marbleIndex[:i], marbleIndex[i+1:]...)			//remove it
+			fmt.Println("new marbleIndex" + string(len(marbleIndex)))
+			for x:= range marbleIndex{
+				fmt.Println(string(x) + " - " + marbleIndex[x])
+			}
 			break
 		}
 	}
-	
+	jsonAsBytes, _ := json.Marshal(marbleIndex)
+	err = stub.PutState("marbleIndex", jsonAsBytes)
+
 	return nil, nil
 }
 
