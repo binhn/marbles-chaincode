@@ -119,7 +119,9 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 	}
 
 	for i,val := range marbleIndex{
+		fmt.Println(strconv.Itoa(i) + "looking at " + val + " for " + name)
 		if val == name{															//find the correct marble
+			fmt.Println("found it")
 			marbleIndex = append(marbleIndex[:i], marbleIndex[i+1:]...)			//remove it
 			break
 		}
@@ -133,25 +135,25 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	if function != "query" {
 		return nil, errors.New("Invalid query function name. Expecting \"query\"")
 	}
-	var A string // Entities
+	var name string // Entities
 	var err error
 
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
 	}
 
-	A = args[0]
+	name = args[0]
 
 	// Get the state from the ledger
-	Avalbytes, err := stub.GetState(A)
+	valAsbytes, err := stub.GetState(name)
 	if err != nil {
-		jsonResp := "{\"Error\":\"Failed to get state for " + A + "\"}"
+		jsonResp := "{\"Error\":\"Failed to get state for " + name + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
-	jsonResp := "{\"Name\":\"" + A + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
+	jsonResp := "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
 	fmt.Printf("Query Response:%s\n", jsonResp)
-	return Avalbytes, nil
+	return []byte(jsonResp), nil
 }
 
 func main() {
