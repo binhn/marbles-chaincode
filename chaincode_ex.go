@@ -155,13 +155,14 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	//jsonResp := "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
 	//fmt.Printf("Query Response:%s\n", jsonResp)
 	
-	if isJSON(string(valAsbytes)) {
+	/*if isJSON(string(valAsbytes)) {
 		jsonResp = "{\"" + name + "\":" + string(valAsbytes) + "}"
 	}else{
 		jsonResp = "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
-	}
-	
+	}	
 	return []byte(jsonResp), nil
+	*/
+	return valAsbytes, nil
 }
 
 func isJSON(s string) bool {
