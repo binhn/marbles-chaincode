@@ -122,16 +122,15 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 	for i,val := range marbleIndex{
 		fmt.Println(strconv.Itoa(i) + " - looking at " + val + " for " + name)
 		if val == name{															//find the correct marble
-			fmt.Println("found it")
+			fmt.Println("found marble")
 			marbleIndex = append(marbleIndex[:i], marbleIndex[i+1:]...)			//remove it
-			fmt.Println("new marbleIndex" + string(len(marbleIndex)))
-			for x:= range marbleIndex{
+			for x:= range marbleIndex{											//debug prints...
 				fmt.Println(string(x) + " - " + marbleIndex[x])
 			}
 			break
 		}
 	}
-	jsonAsBytes, _ := json.Marshal(marbleIndex)
+	jsonAsBytes, _ := json.Marshal(marbleIndex)									//save new index
 	err = stub.PutState("marbleIndex", jsonAsBytes)
 
 	return nil, nil
@@ -259,7 +258,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	if err != nil {
 		val = 16														//default value
 	}
-	str := `{"name": "` + args[0] + `", "color": "` + args[1] + `", "size": "` + strconv.Itoa(val) + `", "user": "` + args[3] + `"}`
+	str := `{"name": "` + args[0] + `", "color": "` + args[1] + `", "size": ` + strconv.Itoa(val) + `, "user": "` + args[3] + `"}`
 
 	// Write the state back to the ledger
 	err = stub.PutState(args[0], []byte(str))							//store marble with id as key
