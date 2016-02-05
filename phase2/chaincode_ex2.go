@@ -115,6 +115,8 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.init_marble(stub, args)
 	} else if function == "set_user" {										//change owner of a marble
 		return t.set_user(stub, args)
+	} else if function == "open_trade" {									//create a new trade order
+		return t.open_trade(stub, args)
 	}
 	fmt.Println("run did not find func: " + function)						//error
 
