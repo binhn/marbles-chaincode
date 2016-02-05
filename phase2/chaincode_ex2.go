@@ -43,6 +43,20 @@ type Marble struct{
 	User string `json:"user"`
 }
 
+type Description struct{
+	Color string `json:"color"`
+	Size int `json:"size"`
+}
+
+type OpenTrade struct{
+	User string `json:"user"`					//user who created the open trade order
+	Timestamp int `json:"timestamp"`			//utc timestamp of creation
+	Want Description  `json:"want"`				//description of desired marble
+	Willing []Description `json:"willing"`		//array of marbles willing to trade away
+}
+
+var openTrades []OpenTrade
+
 // ============================================================================================================================
 // Init - reset all the things
 // ============================================================================================================================
@@ -259,5 +273,59 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 		return nil, err
 	}
 	
+	return nil, nil
+}
+
+// ============================================================================================================================
+// Open Trade - create an open trade for a marble you want with marbles you have 
+// ============================================================================================================================
+func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	var err error
+
+	//if len(args) != 4 {
+	//	return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	//}
+
+	/*
+	type Description stuct{
+		Color string `json:"color"`
+		Size int `json:"size"`
+	}
+
+	type OpenTrade struct{
+		User string `json:"user"`					//user who created the open trade order
+		Timestamp int `json:"timestamp"`			//utc timestamp of creation
+		Want Description  `json:"want"`				//description of desired marble
+		Willing []Description `json:"willing"`		//array of marbles willing to trade away
+	}
+	*/
+	size1, err := strconv.Atoi(args[2])
+	if err != nil {
+		return nil, errors.New("2nd argument must be a number")
+	}
+	size2, err := strconv.Atoi(args[4])
+	if err != nil {
+		return nil, errors.New("4th argument must be a number")
+	}
+
+	open := OpenTrade{};
+	open.User = args[0];
+	open.Timestamp = 0;
+	open.Want.Color = args[1];
+	open.Want.Size =  size1;
+	
+	trade_away := Description{};
+	trade_away.Color = args[3];
+	trade_away.Size =  size2;
+	open.Willing = append(open.Willing, trade_away)
+
+	openTrades = append(openTrades, open);										//append to open trades
+	
+	jsonAsBytes, _ := json.Marshal(openTrades)
+	err = stub.PutState("_opentrades", jsonAsBytes)								//rewrite open orders
+	if err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
