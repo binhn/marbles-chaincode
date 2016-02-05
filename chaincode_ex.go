@@ -32,8 +32,8 @@ import (
 type SimpleChaincode struct {
 }
 
-var marbleIndex []string
-var _allIndex []string						//store all variables names here
+var marbleIndex []string					//store marbles here, b/c we need this
+var _allIndex []string						//store all variables names here, b/c its handy for debug
 var _all string = "_all"					//key name for above. tracks all variables in chaincode state
 
 type Marble struct{
@@ -43,6 +43,9 @@ type Marble struct{
 	User string `json:"user"`
 }
 
+// ============================================================================================================================
+// Init - reset all the things
+// ============================================================================================================================
 func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var Aval int 																	// Asset holdings
 	var err error
@@ -59,12 +62,12 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	fmt.Printf("Aval = %d\n", Aval)
 
 	// Write the state to the ledger
-	err = stub.PutState("a", []byte(strconv.Itoa(Aval)))
+	err = stub.PutState("abc", []byte(strconv.Itoa(Aval)))				//making a test var "abc", I find it handy to read/write to it right away to test the network
 	if err != nil {
 		return nil, err
 	}
 	
-	_allIndex = _allIndex[:0]											//clear the _all index
+	_allIndex = _allIndex[:0]											//clear the _all variables index
 	jsonAsBytes1, _ := json.Marshal(_allIndex)
 	err = stub.PutState(_all, jsonAsBytes1)
 	if err != nil {
@@ -82,38 +85,38 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 }
 
 // ============================================================================================================================
-// Run
+// Run - Our entry point
 // ============================================================================================================================
 func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
 	fmt.Println("run is running " + function)
 
 	// Handle different functions
-	if function == "init" {													// Initialize the entities and their asset holdings
+	if function == "init" {													//initialize the chaincode state, used as reset
 		return t.init(stub, args)
-	} else if function == "delete" {										// Deletes an entity from its state
+	} else if function == "delete" {										//deletes an entity from its state
 		return t.Delete(stub, args)
-	} else if function == "write" {											// Writes a value to the chaincode state
+	} else if function == "write" {											//writes a value to the chaincode state
 		return t.Write(stub, args)
-	} else if function == "init_marble" {									//init_marble
+	} else if function == "init_marble" {									//create a new marble
 		return t.init_marble(stub, args)
-	} else if function == "set_user" {										//set user permissions
+	} else if function == "set_user" {										//change owner of a marble
 		return t.set_user(stub, args)
 	}
-	fmt.Println("run issues " + function)
+	fmt.Println("run did not find func: " + function)						//error
 
 	return nil, errors.New("Received unknown function invocation")
 }
 
-// Deletes an entity from state
+// ============================================================================================================================
+// Delete - remove an entity from state
+// ============================================================================================================================
 func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
-
+	
 	name := args[0]
-
-	// Delete the key from the state in ledger
-	err := stub.DelState(name)
+	err := stub.DelState(name)													//remove the key from chaincode state
 	if err != nil {
 		return nil, errors.New("Failed to delete state")
 	}
@@ -136,45 +139,28 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 	return nil, nil
 }
 
-// Query callback representing the query of a chaincode
+// ============================================================================================================================
+// Query - read a variable from chaincode state - (aka read)
+// ============================================================================================================================
 func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
 	if function != "query" {
 		return nil, errors.New("Invalid query function name. Expecting \"query\"")
 	}
-	var name, jsonResp string // Entities
+	var name, jsonResp string
 	var err error
-
 
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
 	}
 
 	name = args[0]
-
-	// Get the state from the ledger
-	valAsbytes, err := stub.GetState(name)
+	valAsbytes, err := stub.GetState(name)									//get the var from chaincode state
 	if err != nil {
 		jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
-	//jsonResp := "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
-	//fmt.Printf("Query Response:%s\n", jsonResp)
-	
-	/*if isJSON(string(valAsbytes)) {
-		jsonResp = "{\"" + name + "\":" + string(valAsbytes) + "}"
-	}else{
-		jsonResp = "{\"" + name + "\":\"" + string(valAsbytes) + "\"}"
-	}	
-	return []byte(jsonResp), nil
-	*/
-	return valAsbytes, nil
-}
-
-func isJSON(s string) bool {
-    var js map[string]interface{}
-    return json.Unmarshal([]byte(s), &js) == nil
-
+	return valAsbytes, nil													//send it onward
 }
 
 func main() {
@@ -184,24 +170,19 @@ func main() {
 	}
 }
 
-//----------------------------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------------------------
-
 // ============================================================================================================================
-// Write var into chaincode state
+// Write - write variable into chaincode state
 // ============================================================================================================================
 func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var name, value string // Entities
 	var err error
-	fmt.Println("running write - start")
+	fmt.Println("running write()")
 
 	if len(args) != 2 {
-		return nil, errors.New("Incorrect number of arguments. Expecting name of the variable and value to set")
+		return nil, errors.New("Incorrect number of arguments. Expecting 2. name of the variable and value to set")
 	}
 
-	name = args[0]
+	name = args[0]										//rename for funsies
 	value = args[1]
 
 	// Write the state back to the ledger
@@ -211,32 +192,18 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 	}
 	t.remember_me(stub, name)
 
-	fmt.Println("running write - fin - for name " + name)
 	return nil, nil
 }
 
 // ============================================================================================================================
 // Remember Me - remember the name of variables we stored in ledger 
 // ============================================================================================================================
-func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {		//dsh - to do, should probably not exist here, move to stub
+func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {
 	var err error
-	/*var storedNames string
-	storeNamesAsBytes, err := stub.GetState(_all)
-	if err != nil {
-		return nil, errors.New("Failed to get _all")
-	}
 
-	storedNames = string(storeNamesAsBytes)
-	// Write the state back to the ledger
-	err = stub.PutState(_all, []byte(storedNames + "," + name))										//dsh - to do, should probably be json
-	if err != nil {
-		return nil, err
-	}
-	*/
-	
 	_allIndex = append(_allIndex, name)									//add var name to index list
 	jsonAsBytes, _ := json.Marshal(_allIndex)
-	err = stub.PutState(_all, jsonAsBytes)
+	err = stub.PutState(_all, jsonAsBytes)								//store it
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +212,7 @@ func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]
 }
 
 // ============================================================================================================================
-// Init Person 
+// Init Marble 
 // ============================================================================================================================
 func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
@@ -275,7 +242,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 }
 
 // ============================================================================================================================
-// Set User Permissions 
+// Set User Permission on Marble
 // ============================================================================================================================
 func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
@@ -285,17 +252,9 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 		return nil, errors.New("Failed to get thing")
 	}
 	res := Marble{}
-	json.Unmarshal(marbleAsBytes, &res)
+	json.Unmarshal(marbleAsBytes, &res)									//un stringify it aka JSON.parse()
 	fmt.Println(res)
-	
-	/*for i,perm := range res.Users{
-		if perm.UserId == args[1]{							//find the correct user
-			res.Users[i].Permissions[0] = args[2]			//set new perm, dsh - to do make this input as array of all perms
-			fmt.Println(res.Users[i].Permissions)
-			break
-		}
-	}*/
-	res.User = args[1]
+	res.User = args[1]													//change the user
 	
 	// Write the state back to the ledger
 	jsonAsBytes, _ := json.Marshal(res)
