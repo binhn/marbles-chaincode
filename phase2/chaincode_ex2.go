@@ -315,19 +315,40 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	open.Timestamp = 0;
 	open.Want.Color = args[1];
 	open.Want.Size =  size1;
+	fmt.Println("! start open trade")
+	jsonAsBytes, _ := json.Marshal(open)
+	err = stub.PutState("_debug1", jsonAsBytes)
+
+	
+	
 	
 	trade_away := Description{};
 	trade_away.Color = args[3];
 	trade_away.Size =  size2;
-	open.Willing = append(open.Willing, trade_away)
+	fmt.Println("! created trade_away")
+	jsonAsBytes, _ := json.Marshal(trade_away)
+	err = stub.PutState("_debug2", jsonAsBytes)
 
-	openTrades = append(openTrades, open);										//append to open trades
 	
+	
+	
+	open.Willing = append(open.Willing, trade_away)
+	fmt.Println("! appended willing to open")
+	jsonAsBytes, _ := json.Marshal(open)
+	err = stub.PutState("_debug3", jsonAsBytes)
+	
+
+	
+	
+	openTrades = append(openTrades, open);										//append to open trades
+	fmt.Println("! appended open to trades")
 	jsonAsBytes, _ := json.Marshal(openTrades)
 	err = stub.PutState("_opentrades", jsonAsBytes)								//rewrite open orders
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("! open trade success ")
+
 
 	return nil, nil
 }
