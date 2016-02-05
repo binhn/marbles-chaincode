@@ -48,14 +48,18 @@ type Description struct{
 	Size int `json:"size"`
 }
 
-type OpenTrade struct{
+type AnOpenTrade struct{
 	User string `json:"user"`					//user who created the open trade order
 	Timestamp int `json:"timestamp"`			//utc timestamp of creation
 	Want Description  `json:"want"`				//description of desired marble
 	Willing []Description `json:"willing"`		//array of marbles willing to trade away
 }
 
-var openTrades []OpenTrade
+type AllTrades struct{
+	OpenTrades []AnOpenTrade `json:"open_trades"`
+}
+
+var trades AllTrades
 
 // ============================================================================================================================
 // Init - reset all the things
@@ -284,9 +288,9 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 
-	//if len(args) != 4 {
-	//	return nil, errors.New("Incorrect number of arguments. Expecting 4")
-	//}
+	if len(args) < 5 {
+		return nil, errors.New("Incorrect number of arguments. Expecting like 5?")
+	}
 
 	/*
 	type Description stuct{
@@ -294,23 +298,26 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 		Size int `json:"size"`
 	}
 
-	type OpenTrade struct{
+	type AnOpenTrade struct{
 		User string `json:"user"`					//user who created the open trade order
 		Timestamp int `json:"timestamp"`			//utc timestamp of creation
 		Want Description  `json:"want"`				//description of desired marble
 		Willing []Description `json:"willing"`		//array of marbles willing to trade away
 	}
+	
+	"bob", "blue", "16", "red", "16"
 	*/
+	
 	size1, err := strconv.Atoi(args[2])
 	if err != nil {
-		return nil, errors.New("2nd argument must be a number")
+		return nil, errors.New("2nd argument must be a numeric string")
 	}
 	size2, err := strconv.Atoi(args[4])
 	if err != nil {
-		return nil, errors.New("4th argument must be a number")
+		return nil, errors.New("4th argument must be a numeric string")
 	}
 
-	open := OpenTrade{};
+	open := AnOpenTrade{};
 	open.User = args[0];
 	open.Timestamp = 0;
 	open.Want.Color = args[1];
@@ -320,16 +327,12 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	err = stub.PutState("_debug1", jsonAsBytes)
 
 	
-	
-	
 	trade_away := Description{};
 	trade_away.Color = args[3];
 	trade_away.Size =  size2;
 	fmt.Println("! created trade_away")
 	jsonAsBytes, _ = json.Marshal(trade_away)
 	err = stub.PutState("_debug2", jsonAsBytes)
-
-	
 	
 	
 	open.Willing = append(open.Willing, trade_away)
@@ -337,18 +340,14 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	jsonAsBytes, _ = json.Marshal(open)
 	err = stub.PutState("_debug3", jsonAsBytes)
 	
-
 	
-	
-	openTrades = append(openTrades, open);										//append to open trades
+	trades.OpenTrades = append(trades.OpenTrades, open);						//append to open trades
 	fmt.Println("! appended open to trades")
-	jsonAsBytes, _ = json.Marshal(openTrades)
+	jsonAsBytes, _ = json.Marshal(trades)
 	err = stub.PutState("_opentrades", jsonAsBytes)								//rewrite open orders
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("! open trade success ")
-
-
 	return nil, nil
 }
