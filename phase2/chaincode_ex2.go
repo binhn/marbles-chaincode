@@ -312,7 +312,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 
 	open := AnOpenTrade{};
 	open.User = args[0];
-	open.Timestamp = time.Now().UnixNano();										//use this as an ID
+	open.Timestamp = makeTimestamp()											//use this as an ID
 	open.Want.Color = args[1];
 	open.Want.Size =  size1;
 	fmt.Println("! start open trade")
@@ -379,4 +379,9 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	}
 	fmt.Println("! close trade success ")
 	return nil, nil
+}
+
+
+func makeTimestamp() int64 {
+    return time.Now().UnixNano() / (int64(time.Millisecond)/int64(time.Nanosecond))
 }
