@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"encoding/json"
 	"time"
+	"strings"
 
 	"github.com/openblockchain/obc-peer/openchain/chaincode/shim"
 )
@@ -374,6 +375,8 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 			
 			marble, e := findMarble4Trade(stub, trades.OpenTrades[i].User, trades.OpenTrades[i].Want.Color, trades.OpenTrades[i].Want.Size)		//find a marble that is suitable from opener user
 			if(e != nil){
+				fmt.Println("! no errors, proceeding")
+
 				t.set_user(stub, []string{args[2], trades.OpenTrades[i].User})					//change owner of selected marble, closer -> opener
 				t.set_user(stub, []string{marble.Name, args[0]})								//change owner of selected marble, opener -> closer
 			
@@ -402,13 +405,15 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 		}
 		res := Marble{}
 		json.Unmarshal(marbleAsBytes, &res)										//un stringify it aka JSON.parse()
-		if res.User == user && res.Color == color && res.Size == size{
-			fmt.Println("found one")
+		if strings.ToLower(res.User) == strings.ToLower(user) && strings.ToLower(res.Color) == strings.ToLower(color) && res.Size == size{
+			fmt.Println("found one: " + res.Name)
+			fmt.Println("! end find marble 4 trade")
+
 			return res, nil
 		}
 	}
 	
-	fmt.Println("! end find marble 4 trade")
+	fmt.Println("! end find marble 4 trade - error")
 	return fail, errors.New("Did not find marble to use in this trade")
 }
 
