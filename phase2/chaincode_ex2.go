@@ -242,6 +242,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
+	fmt.Println("! start init marble")
 	val, err := strconv.Atoi(args[2])
 	if err != nil {
 		val = 16															//default value
@@ -258,6 +259,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
 	err = stub.PutState("marbleIndex", jsonAsBytes)							//store name of marble
 
+	fmt.Println("! end init marble")
 	return nil, nil
 }
 
@@ -272,6 +274,7 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 		return nil, errors.New("Incorrect number of arguments. Expecting 2")
 	}
 	
+	fmt.Println("! start set user")
 	marbleAsBytes, err := stub.GetState(args[0])
 	if err != nil {
 		return nil, errors.New("Failed to get thing")
@@ -287,6 +290,7 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 		return nil, err
 	}
 	
+	fmt.Println("! end set user")
 	return nil, nil
 }
 
@@ -341,7 +345,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("! open trade success ")
+	fmt.Println("! end open trade")
 	return nil, nil
 }
 
@@ -367,7 +371,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 		if trades.OpenTrades[i].Timestamp == timestamp{
 			fmt.Println("found trade");
 			
-			t.set_user(stub, []string{args[0], args[2]})
+			t.set_user(stub, []string{args[0], trades.OpenTrades[i].User})					//change owner
 			
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)	//remove trade
 			jsonAsBytes, _ := json.Marshal(trades)
@@ -377,7 +381,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 			}
 		}
 	}
-	fmt.Println("! close trade success ")
+	fmt.Println("! end close trade")
 	return nil, nil
 }
 
