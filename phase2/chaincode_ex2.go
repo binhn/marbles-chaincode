@@ -378,7 +378,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	for i := range trades.OpenTrades{																		//look for the trade
 		fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
 		if trades.OpenTrades[i].Timestamp == timestamp{
-			fmt.Println("found trade");
+			fmt.Println("found a trade");
 			
 			marble, e := findMarble4Trade(stub, trades.OpenTrades[i].User, args[4], size)					//find a marble that is suitable from opener
 			if(e == nil){
@@ -418,7 +418,7 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 		json.Unmarshal(marbleAsBytes, &res)										//un stringify it aka JSON.parse()
 		fmt.Println("looking @ " + res.User + ", " + res.Color + ", " + strconv.Itoa(res.Size));
 		if strings.ToLower(res.User) == strings.ToLower(user) && strings.ToLower(res.Color) == strings.ToLower(color) && res.Size == size{
-			fmt.Println("found one: " + res.Name)
+			fmt.Println("found a marble: " + res.Name)
 			fmt.Println("! end find marble 4 trade")
 
 			return res, nil
