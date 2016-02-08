@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"strconv"
 	"encoding/json"
+	"time"
 
 	"github.com/openblockchain/obc-peer/openchain/chaincode/shim"
 )
@@ -50,7 +51,7 @@ type Description struct{
 
 type AnOpenTrade struct{
 	User string `json:"user"`					//user who created the open trade order
-	Timestamp int `json:"timestamp"`			//utc timestamp of creation
+	Timestamp int64 `json:"timestamp"`			//utc timestamp of creation
 	Want Description  `json:"want"`				//description of desired marble
 	Willing []Description `json:"willing"`		//array of marbles willing to trade away
 }
@@ -121,6 +122,8 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.set_user(stub, args)
 	} else if function == "open_trade" {									//create a new trade order
 		return t.open_trade(stub, args)
+	} else if function == "perform_trade" {									//forfill an open trade order
+		return t.perform_trade(stub, args)
 	}
 	fmt.Println("run did not find func: " + function)						//error
 
@@ -264,6 +267,11 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 	
+	// "asdf", "bob"
+	if len(args) < 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 2")
+	}
+	
 	marbleAsBytes, err := stub.GetState(args[0])
 	if err != nil {
 		return nil, errors.New("Failed to get thing")
@@ -288,38 +296,23 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 
+	//"bob", "blue", "16", "red", "16"
 	if len(args) < 5 {
 		return nil, errors.New("Incorrect number of arguments. Expecting like 5?")
 	}
 
-	/*
-	type Description stuct{
-		Color string `json:"color"`
-		Size int `json:"size"`
-	}
-
-	type AnOpenTrade struct{
-		User string `json:"user"`					//user who created the open trade order
-		Timestamp int `json:"timestamp"`			//utc timestamp of creation
-		Want Description  `json:"want"`				//description of desired marble
-		Willing []Description `json:"willing"`		//array of marbles willing to trade away
-	}
-	
-	"bob", "blue", "16", "red", "16"
-	*/
-	
 	size1, err := strconv.Atoi(args[2])
 	if err != nil {
-		return nil, errors.New("2nd argument must be a numeric string")
+		return nil, errors.New("3rd argument must be a numeric string")
 	}
 	size2, err := strconv.Atoi(args[4])
 	if err != nil {
-		return nil, errors.New("4th argument must be a numeric string")
+		return nil, errors.New("5th argument must be a numeric string")
 	}
 
 	open := AnOpenTrade{};
 	open.User = args[0];
-	open.Timestamp = 0;
+	open.Timestamp = time.Now().UnixNano();										//use this as an ID
 	open.Want.Color = args[1];
 	open.Want.Size =  size1;
 	fmt.Println("! start open trade")
@@ -349,5 +342,41 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 		return nil, err
 	}
 	fmt.Println("! open trade success ")
+	return nil, nil
+}
+
+// ============================================================================================================================
+// Perform Trade - close an open trade and move ownership
+// ============================================================================================================================
+func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	var err error
+
+	//"bob", "444444444444", "asdf"
+	if len(args) < 3 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 3")
+	}
+	
+	fmt.Println("! start close trade")
+	timestamp, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil {
+		return nil, errors.New("2nd argument must be a numeric string")
+	}
+	
+	for i := range trades.OpenTrades{														//look for the trade
+		fmt.Println("looking at " + string(trades.OpenTrades[i].Timestamp) + " for " + string(timestamp))
+		if trades.OpenTrades[i].Timestamp == timestamp{
+			fmt.Println("found trade");
+			
+			t.set_user(stub, []string{args[0], args[2]})
+			
+			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)	//remove trade
+			jsonAsBytes, _ := json.Marshal(trades)
+			err = stub.PutState("_opentrades", jsonAsBytes)									//rewrite open orders
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	fmt.Println("! close trade success ")
 	return nil, nil
 }
