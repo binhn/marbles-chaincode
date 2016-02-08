@@ -356,33 +356,40 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 // ============================================================================================================================
 func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
-
-	//"bob", "444444444444", "asdf"
-	if len(args) < 3 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 3")
+	
+	//	0		1					2					3				4					5
+	//[data.id, data.closer.user, data.closer.name, data.opener.user, data.opener.color, data.opener.size]
+	
+	if len(args) < 6 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 6")
 	}
 	
 	fmt.Println("! start close trade")
-	timestamp, err := strconv.ParseInt(args[1], 10, 64)
+	timestamp, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil {
 		return nil, errors.New("2nd argument must be a numeric string")
 	}
 	
-	for i := range trades.OpenTrades{														//look for the trade
+	size, err := strconv.Atoi(args[5])
+	if err != nil {
+		return nil, errors.New("6th argument must be a numeric string")
+	}
+	
+	for i := range trades.OpenTrades{																		//look for the trade
 		fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
 		if trades.OpenTrades[i].Timestamp == timestamp{
 			fmt.Println("found trade");
 			
-			marble, e := findMarble4Trade(stub, trades.OpenTrades[i].User, trades.OpenTrades[i].Want.Color, trades.OpenTrades[i].Want.Size)		//find a marble that is suitable from opener user
+			marble, e := findMarble4Trade(stub, trades.OpenTrades[i].User, args[4], size)					//find a marble that is suitable from opener
 			if(e != nil){
 				fmt.Println("! no errors, proceeding")
 
-				t.set_user(stub, []string{args[2], trades.OpenTrades[i].User})					//change owner of selected marble, closer -> opener
-				t.set_user(stub, []string{marble.Name, args[0]})								//change owner of selected marble, opener -> closer
+				t.set_user(stub, []string{args[2], trades.OpenTrades[i].User})								//change owner of selected marble, closer -> opener
+				t.set_user(stub, []string{marble.Name, args[1]})											//change owner of selected marble, opener -> closer
 			
-				trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)	//remove trade
+				trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)				//remove trade
 				jsonAsBytes, _ := json.Marshal(trades)
-				err = stub.PutState("_opentrades", jsonAsBytes)									//rewrite open orders
+				err = stub.PutState("_opentrades", jsonAsBytes)												//rewrite open orders
 				if err != nil {
 					return nil, err
 				}
