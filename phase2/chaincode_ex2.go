@@ -372,13 +372,17 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 		if trades.OpenTrades[i].Timestamp == timestamp{
 			fmt.Println("found trade");
 			
-			t.set_user(stub, []string{args[2], trades.OpenTrades[i].User})					//change owner
+			marble, e := findMarble4Trade(stub, trades.OpenTrades[i].User, trades.OpenTrades[i].Want.Color, trades.OpenTrades[i].Want.Size)		//find a marble that is suitable from opener user
+			if(e != nil){
+				t.set_user(stub, []string{args[2], trades.OpenTrades[i].User})					//change owner of selected marble, closer -> opener
+				t.set_user(stub, []string{marble.Name, args[0]})								//change owner of selected marble, opener -> closer
 			
-			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)	//remove trade
-			jsonAsBytes, _ := json.Marshal(trades)
-			err = stub.PutState("_opentrades", jsonAsBytes)									//rewrite open orders
-			if err != nil {
-				return nil, err
+				trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)	//remove trade
+				jsonAsBytes, _ := json.Marshal(trades)
+				err = stub.PutState("_opentrades", jsonAsBytes)									//rewrite open orders
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -386,6 +390,27 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	return nil, nil
 }
 
+
+func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size int )(m Marble, err error){
+	var fail Marble;
+	fmt.Println("! start find marble 4 trade")
+
+	for i:= range marbleIndex{
+		marbleAsBytes, err := stub.GetState(marbleIndex[i])
+		if err != nil {
+			return fail, errors.New("Failed to get thing")
+		}
+		res := Marble{}
+		json.Unmarshal(marbleAsBytes, &res)										//un stringify it aka JSON.parse()
+		if res.User == user && res.Color == color && res.Size == size{
+			fmt.Println("found one")
+			return res, nil
+		}
+	}
+	
+	fmt.Println("! end find marble 4 trade")
+	return fail, errors.New("Did not find marble to use in this trade")
+}
 
 func makeTimestamp() int64 {
     return time.Now().UnixNano() / (int64(time.Millisecond)/int64(time.Nanosecond))
