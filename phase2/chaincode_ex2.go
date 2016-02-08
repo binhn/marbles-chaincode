@@ -275,6 +275,7 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 	}
 	
 	fmt.Println("! start set user")
+	fmt.Println(args[0] + " - " + args[1])
 	marbleAsBytes, err := stub.GetState(args[0])
 	if err != nil {
 		return nil, errors.New("Failed to get thing")
@@ -371,7 +372,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 		if trades.OpenTrades[i].Timestamp == timestamp{
 			fmt.Println("found trade");
 			
-			t.set_user(stub, []string{args[0], trades.OpenTrades[i].User})					//change owner
+			t.set_user(stub, []string{args[2], trades.OpenTrades[i].User})					//change owner
 			
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)	//remove trade
 			jsonAsBytes, _ := json.Marshal(trades)
