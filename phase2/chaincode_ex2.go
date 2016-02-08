@@ -363,7 +363,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	}
 	
 	for i := range trades.OpenTrades{														//look for the trade
-		fmt.Println("looking at " + string(trades.OpenTrades[i].Timestamp) + " for " + string(timestamp))
+		fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
 		if trades.OpenTrades[i].Timestamp == timestamp{
 			fmt.Println("found trade");
 			
