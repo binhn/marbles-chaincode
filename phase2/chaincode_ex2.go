@@ -398,13 +398,18 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 	var fail Marble;
 	fmt.Println("! start find marble 4 trade")
 
+	fmt.Println("looking for " + user + ", " + color + ", " + strconv.Itoa(size));
+
 	for i:= range marbleIndex{
+		fmt.Println("looking @ marble name: " + marbleIndex[i]);
+
 		marbleAsBytes, err := stub.GetState(marbleIndex[i])
 		if err != nil {
 			return fail, errors.New("Failed to get thing")
 		}
 		res := Marble{}
 		json.Unmarshal(marbleAsBytes, &res)										//un stringify it aka JSON.parse()
+		fmt.Println("looking @ " + res.User + ", " + res.Color + ", " + strconv.Itoa(res.Size));
 		if strings.ToLower(res.User) == strings.ToLower(user) && strings.ToLower(res.Color) == strings.ToLower(color) && res.Size == size{
 			fmt.Println("found one: " + res.Name)
 			fmt.Println("! end find marble 4 trade")
