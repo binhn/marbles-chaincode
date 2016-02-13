@@ -125,6 +125,8 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.open_trade(stub, args)
 	} else if function == "perform_trade" {									//forfill an open trade order
 		return t.perform_trade(stub, args)
+	} else if function == "remove_trade" {									//cancel an open trade order
+		return t.remove_trade(stub, args)
 	}
 	fmt.Println("run did not find func: " + function)						//error
 
@@ -270,7 +272,8 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 	
-	// "asdf", "bob"
+	//   0       1
+	// "name", "bob"
 	if len(args) < 2 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 2")
 	}
@@ -301,8 +304,9 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 // ============================================================================================================================
 func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
-
-	//"bob", "blue", "16", "red", "16"
+	
+	//	0        1      2     3      4
+	//["bob", "blue", "16", "red", "16"]
 	if len(args) < 5 {
 		return nil, errors.New("Incorrect number of arguments. Expecting like 5?")
 	}
@@ -359,7 +363,6 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	
 	//	0		1					2					3				4					5
 	//[data.id, data.closer.user, data.closer.name, data.opener.user, data.opener.color, data.opener.size]
-	
 	if len(args) < 6 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 6")
 	}
@@ -367,7 +370,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	fmt.Println("! start close trade")
 	timestamp, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil {
-		return nil, errors.New("2nd argument must be a numeric string")
+		return nil, errors.New("1st argument must be a numeric string")
 	}
 	
 	size, err := strconv.Atoi(args[5])
@@ -431,4 +434,40 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 
 func makeTimestamp() int64 {
     return time.Now().UnixNano() / (int64(time.Millisecond)/int64(time.Nanosecond))
+}
+
+
+// ============================================================================================================================
+// Remove Trade - close an open trade
+// ============================================================================================================================
+func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	var err error
+	
+	//	0
+	//[data.id]
+	if len(args) < 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 1")
+	}
+	
+	fmt.Println("! start close trade")
+	timestamp, err := strconv.ParseInt(args[0], 10, 64)
+	if err != nil {
+		return nil, errors.New("1st argument must be a numeric string")
+	}
+	
+	for i := range trades.OpenTrades{																	//look for the trade
+		fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
+		if trades.OpenTrades[i].Timestamp == timestamp{
+			fmt.Println("found a trade");
+			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)				//remove this trade
+			jsonAsBytes, _ := json.Marshal(trades)
+			err = stub.PutState("_opentrades", jsonAsBytes)												//rewrite open orders
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	
+	fmt.Println("! end close trade")
+	return nil, nil
 }
