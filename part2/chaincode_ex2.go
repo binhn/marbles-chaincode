@@ -214,7 +214,7 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	t.remember_me(stub, name)
+	remember_me(stub, name)
 
 	return nil, nil
 }
@@ -222,7 +222,7 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 // ============================================================================================================================
 // Remember Me - remember the name of variables we stored in ledger 
 // ============================================================================================================================
-func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {
+func remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {
 	var err error
 
 	_allIndex = append(_allIndex, name)										//add var name to index list
@@ -241,22 +241,41 @@ func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]
 func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 
+	//   0       1       2     3
+	// "asdf", "blue", "35", "bob"
 	if len(args) != 4 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
 	fmt.Println("! start init marble")
-	val, err := strconv.Atoi(args[2])
-	if err != nil {
-		val = 16															//default value
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument must be a non-empty string")
 	}
-	str := `{"name": "` + args[0] + `", "color": "` + args[1] + `", "size": ` + strconv.Itoa(val) + `, "user": "` + args[3] + `"}`
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument must be a non-empty string")
+	}
+	if len(args[2]) <= 0 {
+		return nil, errors.New("3rd argument must be a non-empty string")
+	}
+	if len(args[3]) <= 0 {
+		return nil, errors.New("4th argument must be a non-empty string")
+	}
+	
+	size, err := strconv.Atoi(args[2])
+	if err != nil {
+		return nil, errors.New("3rd argument must be a numeric string")
+	}
+	
+	color := strings.ToLower(args[1])
+	user := strings.ToLower(args[3])
 
+	str := `{"name": "` + args[0] + `", "color": "` + color + `", "size": ` + strconv.Itoa(size) + `, "user": "` + user + `"}`
 	err = stub.PutState(args[0], []byte(str))								//store marble with id as key
 	if err != nil {
 		return nil, err
 	}
-	t.remember_me(stub, args[0])
+	
+	remember_me(stub, args[0])												//send here, can be helpful when debugging
 	
 	marbleIndex = append(marbleIndex, args[0])								//add marble name to index list
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
