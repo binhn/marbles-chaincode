@@ -323,45 +323,57 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 // ============================================================================================================================
 func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
+	var will_size int
+	var trade_away Description
+
 	
-	//	0        1      2     3      4
-	//["bob", "blue", "16", "red", "16"]
+	//	0        1      2     3      4      5       6
+	//["bob", "blue", "16", "red", "16"] *"blue", "35*
 	if len(args) < 5 {
 		return nil, errors.New("Incorrect number of arguments. Expecting like 5?")
+	}
+	if len(args)%2 == 0{
+		return nil, errors.New("Incorrect number of arguments. Expecting an odd number")
 	}
 
 	size1, err := strconv.Atoi(args[2])
 	if err != nil {
 		return nil, errors.New("3rd argument must be a numeric string")
 	}
-	size2, err := strconv.Atoi(args[4])
-	if err != nil {
-		return nil, errors.New("5th argument must be a numeric string")
-	}
+	//size2, err := strconv.Atoi(args[4])
+	//if err != nil {
+	//	return nil, errors.New("5th argument must be a numeric string")
+	//}
+	
 
-	open := AnOpenTrade{};
-	open.User = args[0];
+	open := AnOpenTrade{}
+	open.User = args[0]
 	open.Timestamp = makeTimestamp()											//use this as an ID
-	open.Want.Color = args[1];
-	open.Want.Size =  size1;
+	open.Want.Color = args[1]
+	open.Want.Size =  size1
 	fmt.Println("! start open trade")
 	jsonAsBytes, _ := json.Marshal(open)
 	err = stub.PutState("_debug1", jsonAsBytes)
 
+	for i:=3; i < len(args); i++ {												//creat and append each willing trade
+		will_size, err = strconv.Atoi(args[i + 1])
+		if err != nil {
+			return nil, errors.New("must be a numeric string")
+		}
+		
+		trade_away = Description{}
+		trade_away.Color = args[i]
+		trade_away.Size =  will_size
+		fmt.Println("! created trade_away")
+		jsonAsBytes, _ = json.Marshal(trade_away)
+		err = stub.PutState("_debug2", jsonAsBytes)
+		
+		open.Willing = append(open.Willing, trade_away)
+		fmt.Println("! appended willing to open")
+	}
 	
-	trade_away := Description{};
-	trade_away.Color = args[3];
-	trade_away.Size =  size2;
-	fmt.Println("! created trade_away")
-	jsonAsBytes, _ = json.Marshal(trade_away)
-	err = stub.PutState("_debug2", jsonAsBytes)
-	
-	
-	open.Willing = append(open.Willing, trade_away)
-	fmt.Println("! appended willing to open")
-	jsonAsBytes, _ = json.Marshal(open)
-	err = stub.PutState("_debug3", jsonAsBytes)
-	
+	//jsonAsBytes, _ = json.Marshal(open)
+	//err = stub.PutState("_debug3", jsonAsBytes)
 	
 	trades.OpenTrades = append(trades.OpenTrades, open);						//append to open trades
 	fmt.Println("! appended open to trades")
