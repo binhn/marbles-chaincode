@@ -533,8 +533,7 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 		if err != nil {
 			return err
 		}
-	}
-	else{
+	}else{
 		fmt.Println("! all trades were fine")
 	}
 
