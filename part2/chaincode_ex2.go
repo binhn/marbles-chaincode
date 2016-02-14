@@ -516,21 +516,24 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 		fmt.Println("looking at trade " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10))
 		
 		for x := range trades.OpenTrades[i].Willing{														//find a marble that is suitable
+			fmt.Println("! on next option " + string(i) + "-" + string(x))
 			_, e := findMarble4Trade(stub, trades.OpenTrades[i].User, trades.OpenTrades[i].Willing[x].Color, trades.OpenTrades[i].Willing[x].Size)
 			if(e != nil){
 				fmt.Println("! errors with this option, removing option")
 				didWork = true
 				trades.OpenTrades[i].Willing = append(trades.OpenTrades[i].Willing[:x], trades.OpenTrades[i].Willing[x+1:]...)	//remove this option
+				fmt.Println("! removed option")
 			}else{
-				fmt.Println("! this trade is fine")
+				fmt.Println("! this option is fine")
 			}
 		}
 		if len(trades.OpenTrades[i].Willing) == 0 {
 			fmt.Println("! no more options for this trade, removing trade")
 			didWork = true
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)					//remove this trade
-			fmt.Println("! done...")
+			fmt.Println("! removed trade...")
 		}
+		fmt.Println("! next trade...")
 	}
 	fmt.Println("! done")
 
