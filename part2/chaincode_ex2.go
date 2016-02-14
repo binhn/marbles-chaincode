@@ -316,6 +316,7 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 	
 	fmt.Println("! end set user")
 	cleanTrades(stub)														//lets make sure all open trades are still valid
+	fmt.Println("! done?")
 	return nil, nil
 }
 
@@ -520,14 +521,19 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 				fmt.Println("! errors with this option, removing option")
 				didWork = true
 				trades.OpenTrades[i].Willing = append(trades.OpenTrades[i].Willing[:x], trades.OpenTrades[i].Willing[x+1:]...)	//remove this option
+			}else{
+				fmt.Println("! this trade is fine")
 			}
 		}
 		if len(trades.OpenTrades[i].Willing) == 0 {
 			fmt.Println("! no more options for this trade, removing trade")
 			didWork = true
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)					//remove this trade
+			fmt.Println("! done...")
 		}
 	}
+	fmt.Println("! done")
+
 	
 	if(didWork){
 		fmt.Println("! saving open trade changes")
