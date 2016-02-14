@@ -522,6 +522,7 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 				fmt.Println("! errors with this option, removing option")
 				didWork = true
 				trades.OpenTrades[i].Willing = append(trades.OpenTrades[i].Willing[:x], trades.OpenTrades[i].Willing[x+1:]...)	//remove this option
+				x--;
 				fmt.Println("! removed option")
 			}else{
 				fmt.Println("! this option is fine")
@@ -531,6 +532,7 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 			fmt.Println("! no more options for this trade, removing trade")
 			didWork = true
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)					//remove this trade
+			i--;
 			fmt.Println("! removed trade...")
 		}
 		fmt.Println("! next trade...")
