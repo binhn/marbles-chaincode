@@ -162,7 +162,7 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 	}
 	jsonAsBytes, _ := json.Marshal(marbleIndex)									//save new index
 	err = stub.PutState("marbleIndex", jsonAsBytes)
-	cleanTrades(stub)
+	cleanTrades(stub)															//lets make sure all open trades are still valid
 	return nil, nil
 }
 
@@ -315,7 +315,7 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 	}
 	
 	fmt.Println("! end set user")
-	cleanTrades(stub)
+	cleanTrades(stub)														//lets make sure all open trades are still valid
 	return nil, nil
 }
 
@@ -426,7 +426,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 		}
 	}
 	fmt.Println("! end close trade")
-	cleanTrades(stub)
+	cleanTrades(stub)																						//lets clean just in case
 	return nil, nil
 }
 
@@ -441,7 +441,7 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 	for i:= range marbleIndex{													//iter through all the marbles
 		//fmt.Println("looking @ marble name: " + marbleIndex[i]);
 
-		marbleAsBytes, err := stub.GetState(marbleIndex[i])
+		marbleAsBytes, err := stub.GetState(marbleIndex[i])						//grab this marble
 		if err != nil {
 			return fail, errors.New("Failed to get marble")
 		}
