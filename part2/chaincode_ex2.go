@@ -516,14 +516,13 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 		fmt.Println("looking at trade " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10))
 		
 		for x := range trades.OpenTrades[i].Willing{														//find a marble that is suitable
-			fmt.Println("! on next option " + string(i) + "-" + string(x))
+			fmt.Println("! on next option " + strconv.Itoa(i) + "-" + strconv.Itoa(x))
 			_, e := findMarble4Trade(stub, trades.OpenTrades[i].User, trades.OpenTrades[i].Willing[x].Color, trades.OpenTrades[i].Willing[x].Size)
 			if(e != nil){
 				fmt.Println("! errors with this option, removing option")
 				didWork = true
 				trades.OpenTrades[i].Willing = append(trades.OpenTrades[i].Willing[:x], trades.OpenTrades[i].Willing[x+1:]...)	//remove this option
 				x--;
-				fmt.Println("! removed option")
 			}else{
 				fmt.Println("! this option is fine")
 			}
@@ -533,13 +532,10 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 			didWork = true
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)					//remove this trade
 			i--;
-			fmt.Println("! removed trade...")
 		}
-		fmt.Println("! next trade...")
 	}
 	fmt.Println("! done")
 
-	
 	if(didWork){
 		fmt.Println("! saving open trade changes")
 		jsonAsBytes, _ := json.Marshal(trades)
