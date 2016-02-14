@@ -79,7 +79,6 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	if err != nil {
 		return nil, errors.New("Expecting integer value for asset holding")
 	}
-	fmt.Printf("Aval = %d\n", Aval)
 
 	// Write the state to the ledger
 	err = stub.PutState("abc", []byte(strconv.Itoa(Aval)))				//making a test var "abc", I find it handy to read/write to it right away to test the network
@@ -100,6 +99,8 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	if err != nil {
 		return nil, err
 	}
+	
+	trades.OpenTrades = trades.OpenTrades[:0]							//clear the open trade struct
 	
 	return nil, nil
 }
@@ -134,7 +135,7 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 }
 
 // ============================================================================================================================
-// Delete - remove an entity from state
+// Delete - remove a key/value pair from state
 // ============================================================================================================================
 func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	if len(args) != 1 {
@@ -236,7 +237,7 @@ func remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {
 }
 
 // ============================================================================================================================
-// Init Marble 
+// Init Marble - create a new marble, store into chaincode state
 // ============================================================================================================================
 func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
@@ -305,7 +306,6 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 	}
 	res := Marble{}
 	json.Unmarshal(marbleAsBytes, &res)										//un stringify it aka JSON.parse()
-	fmt.Println(res)
 	res.User = args[1]														//change the user
 	
 	jsonAsBytes, _ := json.Marshal(res)
@@ -343,7 +343,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 
 	open := AnOpenTrade{}
 	open.User = args[0]
-	open.Timestamp = makeTimestamp()											//use this as an ID
+	open.Timestamp = makeTimestamp()											//use timestamp as an ID
 	open.Want.Color = args[1]
 	open.Want.Size =  size1
 	fmt.Println("! start open trade")
@@ -439,7 +439,7 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 	fmt.Println("looking for " + user + ", " + color + ", " + strconv.Itoa(size));
 
 	for i:= range marbleIndex{													//iter through all the marbles
-		fmt.Println("looking @ marble name: " + marbleIndex[i]);
+		//fmt.Println("looking @ marble name: " + marbleIndex[i]);
 
 		marbleAsBytes, err := stub.GetState(marbleIndex[i])
 		if err != nil {
@@ -447,7 +447,7 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 		}
 		res := Marble{}
 		json.Unmarshal(marbleAsBytes, &res)										//un stringify it aka JSON.parse()
-		fmt.Println("looking @ " + res.User + ", " + res.Color + ", " + strconv.Itoa(res.Size));
+		//fmt.Println("looking @ " + res.User + ", " + res.Color + ", " + strconv.Itoa(res.Size));
 		
 		//check for user && color && size
 		if strings.ToLower(res.User) == strings.ToLower(user) && strings.ToLower(res.Color) == strings.ToLower(color) && res.Size == size{
@@ -461,12 +461,15 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 	return fail, errors.New("Did not find marble to use in this trade")
 }
 
+// ============================================================================================================================
+// Make Timestamp - create a timestamp in ms
+// ============================================================================================================================
 func makeTimestamp() int64 {
     return time.Now().UnixNano() / (int64(time.Millisecond)/int64(time.Nanosecond))
 }
 
 // ============================================================================================================================
-// Remove Trade - close an open trade
+// Remove Open Trade - close an open trade
 // ============================================================================================================================
 func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
@@ -477,14 +480,14 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
 	
-	fmt.Println("! start close trade")
+	fmt.Println("! start remove trade")
 	timestamp, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil {
 		return nil, errors.New("1st argument must be a numeric string")
 	}
 	
 	for i := range trades.OpenTrades{																	//look for the trade
-		fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
+		//fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
 		if trades.OpenTrades[i].Timestamp == timestamp{
 			fmt.Println("found the trade");
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)				//remove this trade
@@ -493,22 +496,22 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 			if err != nil {
 				return nil, err
 			}
+			break
 		}
 	}
 	
-	fmt.Println("! end close trade")
+	fmt.Println("! end remove trade")
 	return nil, nil
 }
 
-
 // ============================================================================================================================
-// cleanTrades - make sure open trades are still possible, remove choices that are no longer possible, remove trades that have no valid choices
+// Clean Up Open Trades - make sure open trades are still possible, remove choices that are no longer possible, remove trades that have no valid choices
 // ============================================================================================================================
 func cleanTrades(stub *shim.ChaincodeStub)(err error){
 	var didWork = false
 	fmt.Println("! start clean trades")
 	
-	for i := range trades.OpenTrades{
+	for i := range trades.OpenTrades{																		//iter over all the known open trades
 		fmt.Println("looking at trade " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10))
 		
 		for x := range trades.OpenTrades[i].Willing{														//find a marble that is suitable
@@ -527,14 +530,14 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 	}
 	
 	if(didWork){
-		fmt.Println("! saving trade changes")
+		fmt.Println("! saving open trade changes")
 		jsonAsBytes, _ := json.Marshal(trades)
 		err = stub.PutState("_opentrades", jsonAsBytes)														//rewrite open orders
 		if err != nil {
 			return err
 		}
 	}else{
-		fmt.Println("! all trades were fine")
+		fmt.Println("! all open trades are fine")
 	}
 
 	fmt.Println("! end clean trades")
