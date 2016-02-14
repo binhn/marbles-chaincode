@@ -358,18 +358,21 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	for i:=3; i < len(args); i++ {												//creat and append each willing trade
 		will_size, err = strconv.Atoi(args[i + 1])
 		if err != nil {
-			return nil, errors.New("must be a numeric string")
+			msg := "is not a numeric string " + args[i + 1]
+			fmt.Println(msg)
+			return nil, errors.New(msg)
 		}
 		
 		trade_away = Description{}
 		trade_away.Color = args[i]
 		trade_away.Size =  will_size
-		fmt.Println("! created trade_away")
+		fmt.Println("! created trade_away: " + args[i])
 		jsonAsBytes, _ = json.Marshal(trade_away)
 		err = stub.PutState("_debug2", jsonAsBytes)
 		
 		open.Willing = append(open.Willing, trade_away)
 		fmt.Println("! appended willing to open")
+		i++;
 	}
 	
 	//jsonAsBytes, _ = json.Marshal(open)
