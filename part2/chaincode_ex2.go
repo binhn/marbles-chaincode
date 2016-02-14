@@ -248,7 +248,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
-	fmt.Println("! start init marble")
+	fmt.Println("- start init marble")
 	if len(args[0]) <= 0 {
 		return nil, errors.New("1st argument must be a non-empty string")
 	}
@@ -282,7 +282,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
 	err = stub.PutState("marbleIndex", jsonAsBytes)							//store name of marble
 
-	fmt.Println("! end init marble")
+	fmt.Println("- end init marble")
 	return nil, nil
 }
 
@@ -298,7 +298,7 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 		return nil, errors.New("Incorrect number of arguments. Expecting 2")
 	}
 	
-	fmt.Println("! start set user")
+	fmt.Println("- start set user")
 	fmt.Println(args[0] + " - " + args[1])
 	marbleAsBytes, err := stub.GetState(args[0])
 	if err != nil {
@@ -314,9 +314,8 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 		return nil, err
 	}
 	
-	fmt.Println("! end set user")
+	fmt.Println("- end set user")
 	cleanTrades(stub)														//lets make sure all open trades are still valid
-	fmt.Println("! done?")
 	return nil, nil
 }
 
@@ -347,7 +346,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	open.Timestamp = makeTimestamp()											//use timestamp as an ID
 	open.Want.Color = args[1]
 	open.Want.Size =  size1
-	fmt.Println("! start open trade")
+	fmt.Println("- start open trade")
 	jsonAsBytes, _ := json.Marshal(open)
 	err = stub.PutState("_debug1", jsonAsBytes)
 
@@ -378,7 +377,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("! end open trade")
+	fmt.Println("- end open trade")
 	return nil, nil
 }
 
@@ -394,7 +393,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 		return nil, errors.New("Incorrect number of arguments. Expecting 6")
 	}
 	
-	fmt.Println("! start close trade")
+	fmt.Println("- start close trade")
 	timestamp, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil {
 		return nil, errors.New("1st argument must be a numeric string")
@@ -426,7 +425,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 			}
 		}
 	}
-	fmt.Println("! end close trade")
+	fmt.Println("- end close trade")
 	cleanTrades(stub)																						//lets clean just in case
 	return nil, nil
 }
@@ -436,7 +435,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 // ============================================================================================================================
 func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size int )(m Marble, err error){
 	var fail Marble;
-	fmt.Println("! start find marble 4 trade")
+	fmt.Println("- start find marble 4 trade")
 	fmt.Println("looking for " + user + ", " + color + ", " + strconv.Itoa(size));
 
 	for i:= range marbleIndex{													//iter through all the marbles
@@ -458,7 +457,7 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 		}
 	}
 	
-	fmt.Println("! end find marble 4 trade - error")
+	fmt.Println("- end find marble 4 trade - error")
 	return fail, errors.New("Did not find marble to use in this trade")
 }
 
@@ -481,7 +480,7 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
 	
-	fmt.Println("! start remove trade")
+	fmt.Println("- start remove trade")
 	timestamp, err := strconv.ParseInt(args[0], 10, 64)
 	if err != nil {
 		return nil, errors.New("1st argument must be a numeric string")
@@ -501,7 +500,7 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 		}
 	}
 	
-	fmt.Println("! end remove trade")
+	fmt.Println("- end remove trade")
 	return nil, nil
 }
 
@@ -510,7 +509,7 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 // ============================================================================================================================
 func cleanTrades(stub *shim.ChaincodeStub)(err error){
 	var didWork = false
-	fmt.Println("! start clean trades")
+	fmt.Println("- start clean trades")
 	
 	fmt.Println("# trades " + strconv.Itoa(len(trades.OpenTrades)))
 	for i:=0; i<len(trades.OpenTrades); {																		//iter over all the known open trades
@@ -530,10 +529,10 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 			}
 			
 			x++
+			fmt.Println("! x:" + strconv.Itoa(x))
 			if x >= len(trades.OpenTrades[i].Willing) {														//things might have shifted, recalcuate
 				break
 			}
-			fmt.Println("! x:" + strconv.Itoa(x))
 		}
 		
 		if len(trades.OpenTrades[i].Willing) == 0 {
@@ -544,12 +543,11 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 		}
 		
 		i++
+		fmt.Println("! i:" + strconv.Itoa(i))
 		if i >= len(trades.OpenTrades) {																	//things might have shifted, recalcuate
 			break
 		}
-		fmt.Println("! i:" + strconv.Itoa(i))
 	}
-	fmt.Println("! done")
 
 	if(didWork){
 		fmt.Println("! saving open trade changes")
@@ -562,6 +560,6 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 		fmt.Println("! all open trades are fine")
 	}
 
-	fmt.Println("! end clean trades")
+	fmt.Println("- end clean trades")
 	return nil
 }
