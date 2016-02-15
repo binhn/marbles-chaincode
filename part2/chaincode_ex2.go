@@ -115,17 +115,23 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 	if function == "init" {													//initialize the chaincode state, used as reset
 		return t.init(stub, args)
 	} else if function == "delete" {										//deletes an entity from its state
-		return t.Delete(stub, args)
+		res, err := t.Delete(stub, args)
+		cleanTrades(stub)													//lets make sure all open trades are still valid
+		return res, err
 	} else if function == "write" {											//writes a value to the chaincode state
 		return t.Write(stub, args)
 	} else if function == "init_marble" {									//create a new marble
 		return t.init_marble(stub, args)
 	} else if function == "set_user" {										//change owner of a marble
-		return t.set_user(stub, args)
+		res, err := t.set_user(stub, args)
+		cleanTrades(stub)													//lets make sure all open trades are still valid
+		return res, err
 	} else if function == "open_trade" {									//create a new trade order
 		return t.open_trade(stub, args)
 	} else if function == "perform_trade" {									//forfill an open trade order
-		return t.perform_trade(stub, args)
+		res, err := t.perform_trade(stub, args)
+		cleanTrades(stub)													//lets clean just in case
+		return res, err
 	} else if function == "remove_trade" {									//cancel an open trade order
 		return t.remove_trade(stub, args)
 	}
@@ -162,7 +168,6 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 	}
 	jsonAsBytes, _ := json.Marshal(marbleIndex)									//save new index
 	err = stub.PutState("marbleIndex", jsonAsBytes)
-	cleanTrades(stub)															//lets make sure all open trades are still valid
 	return nil, nil
 }
 
@@ -315,7 +320,6 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 	}
 	
 	fmt.Println("- end set user")
-	cleanTrades(stub)														//lets make sure all open trades are still valid
 	return nil, nil
 }
 
@@ -426,7 +430,6 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 		}
 	}
 	fmt.Println("- end close trade")
-	cleanTrades(stub)																						//lets clean just in case
 	return nil, nil
 }
 
