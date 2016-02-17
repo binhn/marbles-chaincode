@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"strconv"
 	"encoding/json"
-	"time"
 	"strings"
 
 	"github.com/openblockchain/obc-peer/openchain/chaincode/shim"
