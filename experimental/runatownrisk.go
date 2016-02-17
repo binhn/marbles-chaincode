@@ -34,7 +34,8 @@ import (
 type SimpleChaincode struct {
 }
 
-var _marbleIndex = "marbleIndex"				//name for the key/value that will store a list of all known marbles
+var _marbleIndex = "_marbleindex"				//name for the key/value that will store a list of all known marbles
+var _opentrades = "_opentrades"					//name for the key/value that will store all open trades
 
 type Marble struct{
 	Name string `json:"name"`					//the fieldtags are needed to keep case from bouncing around
@@ -58,8 +59,6 @@ type AnOpenTrade struct{
 type AllTrades struct{
 	OpenTrades []AnOpenTrade `json:"open_trades"`
 }
-
-var trades AllTrades
 
 // ============================================================================================================================
 // Init - reset all the things
@@ -91,7 +90,12 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 		return nil, err
 	}
 	
-	trades.OpenTrades = trades.OpenTrades[:0]							//clear the open trade struct
+	var trades AllTrades
+	jsonAsBytes, _ = json.Marshal(trades)								//clear the open trade struct
+	err = stub.PutState(_marbleIndex, jsonAsBytes)
+	if err != nil {
+		return nil, err
+	}
 	
 	return nil, nil
 }
@@ -362,6 +366,14 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 		i++;
 	}
 	
+	//get the open trade struct
+	tradesAsBytes, err := stub.GetState(_opentrades)
+	if err != nil {
+		return nil, errors.New("Failed to get opentrades")
+	}
+	var trades AllTrades
+	json.Unmarshal(tradesAsBytes, &trades)										//un stringify it aka JSON.parse()
+	
 	trades.OpenTrades = append(trades.OpenTrades, open);						//append to open trades
 	fmt.Println("! appended open to trades")
 	jsonAsBytes, _ = json.Marshal(trades)
@@ -395,6 +407,14 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	if err != nil {
 		return nil, errors.New("6th argument must be a numeric string")
 	}
+	
+	//get the open trade struct
+	tradesAsBytes, err := stub.GetState(_opentrades)
+	if err != nil {
+		return nil, errors.New("Failed to get opentrades")
+	}
+	var trades AllTrades
+	json.Unmarshal(tradesAsBytes, &trades)																//un stringify it aka JSON.parse()
 	
 	for i := range trades.OpenTrades{																		//look for the trade
 		fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
@@ -485,6 +505,14 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 		return nil, errors.New("1st argument must be a numeric string")
 	}
 	
+	//get the open trade struct
+	tradesAsBytes, err := stub.GetState(_opentrades)
+	if err != nil {
+		return nil, errors.New("Failed to get opentrades")
+	}
+	var trades AllTrades
+	json.Unmarshal(tradesAsBytes, &trades)																//un stringify it aka JSON.parse()
+	
 	for i := range trades.OpenTrades{																	//look for the trade
 		//fmt.Println("looking at " + strconv.FormatInt(trades.OpenTrades[i].Timestamp, 10) + " for " + strconv.FormatInt(timestamp, 10))
 		if trades.OpenTrades[i].Timestamp == timestamp{
@@ -509,6 +537,14 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 func cleanTrades(stub *shim.ChaincodeStub)(err error){
 	var didWork = false
 	fmt.Println("- start clean trades")
+	
+	//get the open trade struct
+	tradesAsBytes, err := stub.GetState(_opentrades)
+	if err != nil {
+		return errors.New("Failed to get opentrades")
+	}
+	var trades AllTrades
+	json.Unmarshal(tradesAsBytes, &trades)																		//un stringify it aka JSON.parse()
 	
 	fmt.Println("# trades " + strconv.Itoa(len(trades.OpenTrades)))
 	for i:=0; i<len(trades.OpenTrades); {																		//iter over all the known open trades
