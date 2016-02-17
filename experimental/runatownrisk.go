@@ -152,7 +152,7 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 	//get the marble index
 	marblesAsBytes, err := stub.GetState(marbleIndexStr)
 	if err != nil {
-		return nil, errors.New("Failed to get marbleIndex")
+		return nil, errors.New("Failed to get marble index")
 	}
 	var marbleIndex []string
 	json.Unmarshal(marblesAsBytes, &marbleIndex)								//un stringify it aka JSON.parse()
@@ -170,7 +170,7 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 		}
 	}
 	jsonAsBytes, _ := json.Marshal(marbleIndex)									//save new index
-	err = stub.PutState("marbleIndex", jsonAsBytes)
+	err = stub.PutState(marbleIndexStr, jsonAsBytes)
 	return nil, nil
 }
 
@@ -269,7 +269,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	//get the marble index
 	marblesAsBytes, err := stub.GetState(marbleIndexStr)
 	if err != nil {
-		return nil, errors.New("Failed to get marbleIndex")
+		return nil, errors.New("Failed to get marble index")
 	}
 	var marbleIndex []string
 	json.Unmarshal(marblesAsBytes, &marbleIndex)							//un stringify it aka JSON.parse()
@@ -279,7 +279,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	marbleIndex = append(marbleIndex, args[0])								//add marble name to index list
 	fmt.Println("! storing ", marbleIndex)
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
-	err = stub.PutState("marbleIndex", jsonAsBytes)							//store name of marble
+	err = stub.PutState(marbleIndexStr, jsonAsBytes)						//store name of marble
 
 	fmt.Println("- end init marble")
 	return nil, nil
@@ -454,7 +454,7 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 	//get the marble index
 	marblesAsBytes, err := stub.GetState(marbleIndexStr)
 	if err != nil {
-		return fail, errors.New("Failed to get marbleIndex")
+		return fail, errors.New("Failed to get marble index")
 	}
 	var marbleIndex []string
 	json.Unmarshal(marblesAsBytes, &marbleIndex)								//un stringify it aka JSON.parse()
