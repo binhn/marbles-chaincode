@@ -35,8 +35,6 @@ type SimpleChaincode struct {
 }
 
 var _marbleIndex = "marbleIndex"				//name for the key/value that will store a list of all known marbles
-var _allIndex []string							//debug - store all variables names here, b/c its handy for debug
-var _all string = "_all"						//debug - key name for above. tracks all variables in chaincode state
 
 type Marble struct{
 	Name string `json:"name"`					//the fieldtags are needed to keep case from bouncing around
@@ -86,13 +84,6 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 		return nil, err
 	}
 	
-	_allIndex = _allIndex[:0]											//clear the _all variables index
-	jsonAsBytes1, _ := json.Marshal(_allIndex)
-	err = stub.PutState(_all, jsonAsBytes1)
-	if err != nil {
-		return nil, err
-	}
-
 	var empty []string
 	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
 	err = stub.PutState(_marbleIndex, jsonAsBytes)
@@ -228,24 +219,6 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	remember_me(stub, name)
-
-	return nil, nil
-}
-
-// ============================================================================================================================
-// Remember Me - remember the name of variables we stored in ledger, useful for debug
-// ============================================================================================================================
-func remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {
-	var err error
-
-	_allIndex = append(_allIndex, name)										//add var name to index list
-	jsonAsBytes, _ := json.Marshal(_allIndex)
-	err = stub.PutState(_all, jsonAsBytes)									//store it
-	if err != nil {
-		return nil, err
-	}
-	
 	return nil, nil
 }
 
@@ -288,9 +261,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	if err != nil {
 		return nil, err
 	}
-	
-	remember_me(stub, args[0])												//send here, can be helpful when debugging
-	
+		
 	//get the marble index
 	marblesAsBytes, err := stub.GetState(_marbleIndex)
 	if err != nil {
