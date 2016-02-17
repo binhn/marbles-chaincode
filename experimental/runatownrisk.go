@@ -34,8 +34,8 @@ import (
 type SimpleChaincode struct {
 }
 
-var _marbleIndex = "_marbleindex"				//name for the key/value that will store a list of all known marbles
-var _opentrades = "_opentrades"					//name for the key/value that will store all open trades
+var marbleIndexStr = "_marbleindex"				//name for the key/value that will store a list of all known marbles
+var openTradesStr = "_opentrades"				//name for the key/value that will store all open trades
 
 type Marble struct{
 	Name string `json:"name"`					//the fieldtags are needed to keep case from bouncing around
@@ -85,14 +85,14 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	
 	var empty []string
 	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
-	err = stub.PutState(_marbleIndex, jsonAsBytes)
+	err = stub.PutState(marbleIndexStr, jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
 	
 	var trades AllTrades
 	jsonAsBytes, _ = json.Marshal(trades)								//clear the open trade struct
-	err = stub.PutState(_marbleIndex, jsonAsBytes)
+	err = stub.PutState(openTradesStr, jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 	}
 
 	//get the marble index
-	marblesAsBytes, err := stub.GetState(_marbleIndex)
+	marblesAsBytes, err := stub.GetState(marbleIndexStr)
 	if err != nil {
 		return nil, errors.New("Failed to get marbleIndex")
 	}
@@ -267,7 +267,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	}
 		
 	//get the marble index
-	marblesAsBytes, err := stub.GetState(_marbleIndex)
+	marblesAsBytes, err := stub.GetState(marbleIndexStr)
 	if err != nil {
 		return nil, errors.New("Failed to get marbleIndex")
 	}
@@ -369,7 +369,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	}
 	
 	//get the open trade struct
-	tradesAsBytes, err := stub.GetState(_opentrades)
+	tradesAsBytes, err := stub.GetState(openTradesStr)
 	if err != nil {
 		return nil, errors.New("Failed to get opentrades")
 	}
@@ -379,7 +379,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	trades.OpenTrades = append(trades.OpenTrades, open);						//append to open trades
 	fmt.Println("! appended open to trades")
 	jsonAsBytes, _ = json.Marshal(trades)
-	err = stub.PutState("_opentrades", jsonAsBytes)								//rewrite open orders
+	err = stub.PutState("openTradesStr", jsonAsBytes)								//rewrite open orders
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +411,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 	}
 	
 	//get the open trade struct
-	tradesAsBytes, err := stub.GetState(_opentrades)
+	tradesAsBytes, err := stub.GetState(openTradesStr)
 	if err != nil {
 		return nil, errors.New("Failed to get opentrades")
 	}
@@ -432,7 +432,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 			
 				trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)				//remove trade
 				jsonAsBytes, _ := json.Marshal(trades)
-				err = stub.PutState("_opentrades", jsonAsBytes)												//rewrite open orders
+				err = stub.PutState("openTradesStr", jsonAsBytes)												//rewrite open orders
 				if err != nil {
 					return nil, err
 				}
@@ -452,7 +452,7 @@ func findMarble4Trade(stub *shim.ChaincodeStub, user string, color string, size 
 	fmt.Println("looking for " + user + ", " + color + ", " + strconv.Itoa(size));
 
 	//get the marble index
-	marblesAsBytes, err := stub.GetState(_marbleIndex)
+	marblesAsBytes, err := stub.GetState(marbleIndexStr)
 	if err != nil {
 		return fail, errors.New("Failed to get marbleIndex")
 	}
@@ -508,7 +508,7 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 	}
 	
 	//get the open trade struct
-	tradesAsBytes, err := stub.GetState(_opentrades)
+	tradesAsBytes, err := stub.GetState(openTradesStr)
 	if err != nil {
 		return nil, errors.New("Failed to get opentrades")
 	}
@@ -521,7 +521,7 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 			fmt.Println("found the trade");
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)				//remove this trade
 			jsonAsBytes, _ := json.Marshal(trades)
-			err = stub.PutState("_opentrades", jsonAsBytes)												//rewrite open orders
+			err = stub.PutState("openTradesStr", jsonAsBytes)												//rewrite open orders
 			if err != nil {
 				return nil, err
 			}
@@ -541,7 +541,7 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 	fmt.Println("- start clean trades")
 	
 	//get the open trade struct
-	tradesAsBytes, err := stub.GetState(_opentrades)
+	tradesAsBytes, err := stub.GetState(openTradesStr)
 	if err != nil {
 		return errors.New("Failed to get opentrades")
 	}
@@ -589,7 +589,7 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 	if(didWork){
 		fmt.Println("! saving open trade changes")
 		jsonAsBytes, _ := json.Marshal(trades)
-		err = stub.PutState("_opentrades", jsonAsBytes)														//rewrite open orders
+		err = stub.PutState("openTradesStr", jsonAsBytes)														//rewrite open orders
 		if err != nil {
 			return err
 		}
