@@ -379,7 +379,7 @@ func (t *SimpleChaincode) open_trade(stub *shim.ChaincodeStub, args []string) ([
 	trades.OpenTrades = append(trades.OpenTrades, open);						//append to open trades
 	fmt.Println("! appended open to trades")
 	jsonAsBytes, _ = json.Marshal(trades)
-	err = stub.PutState("openTradesStr", jsonAsBytes)								//rewrite open orders
+	err = stub.PutState(openTradesStr, jsonAsBytes)								//rewrite open orders
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +432,7 @@ func (t *SimpleChaincode) perform_trade(stub *shim.ChaincodeStub, args []string)
 			
 				trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)				//remove trade
 				jsonAsBytes, _ := json.Marshal(trades)
-				err = stub.PutState("openTradesStr", jsonAsBytes)												//rewrite open orders
+				err = stub.PutState(openTradesStr, jsonAsBytes)												//rewrite open orders
 				if err != nil {
 					return nil, err
 				}
@@ -521,7 +521,7 @@ func (t *SimpleChaincode) remove_trade(stub *shim.ChaincodeStub, args []string) 
 			fmt.Println("found the trade");
 			trades.OpenTrades = append(trades.OpenTrades[:i], trades.OpenTrades[i+1:]...)				//remove this trade
 			jsonAsBytes, _ := json.Marshal(trades)
-			err = stub.PutState("openTradesStr", jsonAsBytes)												//rewrite open orders
+			err = stub.PutState(openTradesStr, jsonAsBytes)												//rewrite open orders
 			if err != nil {
 				return nil, err
 			}
@@ -589,7 +589,7 @@ func cleanTrades(stub *shim.ChaincodeStub)(err error){
 	if(didWork){
 		fmt.Println("! saving open trade changes")
 		jsonAsBytes, _ := json.Marshal(trades)
-		err = stub.PutState("openTradesStr", jsonAsBytes)														//rewrite open orders
+		err = stub.PutState(openTradesStr, jsonAsBytes)														//rewrite open orders
 		if err != nil {
 			return err
 		}
