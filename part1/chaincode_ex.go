@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"strconv"
 	"encoding/json"
+	"strings"
 
 	"github.com/openblockchain/obc-peer/openchain/chaincode/shim"
 )
@@ -32,9 +33,8 @@ import (
 type SimpleChaincode struct {
 }
 
-var marbleIndex []string						//store marbles here, b/c we need this
-var _allIndex []string							//store all variables names here, b/c its handy for debug
-var _all string = "_all"						//key name for above. tracks all variables in chaincode state
+var marbleIndexStr = "_marbleindex"				//name for the key/value that will store a list of all known marbles
+var openTradesStr = "_opentrades"				//name for the key/value that will store all open trades
 
 type Marble struct{
 	Name string `json:"name"`					//the fieldtags are needed to keep case from bouncing around
@@ -59,7 +59,6 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	if err != nil {
 		return nil, errors.New("Expecting integer value for asset holding")
 	}
-	fmt.Printf("Aval = %d\n", Aval)
 
 	// Write the state to the ledger
 	err = stub.PutState("abc", []byte(strconv.Itoa(Aval)))				//making a test var "abc", I find it handy to read/write to it right away to test the network
@@ -67,16 +66,9 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 		return nil, err
 	}
 	
-	_allIndex = _allIndex[:0]											//clear the _all variables index
-	jsonAsBytes1, _ := json.Marshal(_allIndex)
-	err = stub.PutState(_all, jsonAsBytes1)
-	if err != nil {
-		return nil, err
-	}
-
-	marbleIndex = marbleIndex[:0]										//clear the marble index
-	jsonAsBytes, _ := json.Marshal(marbleIndex)
-	err = stub.PutState("marbleIndex", jsonAsBytes)
+	var empty []string
+	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
+	err = stub.PutState(marbleIndexStr, jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +100,7 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 }
 
 // ============================================================================================================================
-// Delete - remove an entity from state
+// Delete - remove a key/value pair from state
 // ============================================================================================================================
 func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	if len(args) != 1 {
@@ -121,6 +113,14 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 		return nil, errors.New("Failed to delete state")
 	}
 
+	//get the marble index
+	marblesAsBytes, err := stub.GetState(marbleIndexStr)
+	if err != nil {
+		return nil, errors.New("Failed to get marble index")
+	}
+	var marbleIndex []string
+	json.Unmarshal(marblesAsBytes, &marbleIndex)								//un stringify it aka JSON.parse()
+	
 	//remove marble from index
 	for i,val := range marbleIndex{
 		fmt.Println(strconv.Itoa(i) + " - looking at " + val + " for " + name)
@@ -134,8 +134,7 @@ func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byt
 		}
 	}
 	jsonAsBytes, _ := json.Marshal(marbleIndex)									//save new index
-	err = stub.PutState("marbleIndex", jsonAsBytes)
-
+	err = stub.PutState(marbleIndexStr, jsonAsBytes)
 	return nil, nil
 }
 
@@ -150,7 +149,7 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	var err error
 
 	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting v of the var to query")
+		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
 	}
 
 	name = args[0]
@@ -188,53 +187,64 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	t.remember_me(stub, name)
-
 	return nil, nil
 }
 
 // ============================================================================================================================
-// Remember Me - remember the name of variables we stored in ledger 
-// ============================================================================================================================
-func (t *SimpleChaincode) remember_me(stub *shim.ChaincodeStub, name string) ([]byte, error) {
-	var err error
-
-	_allIndex = append(_allIndex, name)										//add var name to index list
-	jsonAsBytes, _ := json.Marshal(_allIndex)
-	err = stub.PutState(_all, jsonAsBytes)									//store it
-	if err != nil {
-		return nil, err
-	}
-	
-	return nil, nil
-}
-
-// ============================================================================================================================
-// Init Marble 
+// Init Marble - create a new marble, store into chaincode state
 // ============================================================================================================================
 func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 
+	//   0       1       2     3
+	// "asdf", "blue", "35", "bob"
 	if len(args) != 4 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
-	val, err := strconv.Atoi(args[2])
-	if err != nil {
-		val = 16															//default value
+	fmt.Println("- start init marble")
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument must be a non-empty string")
 	}
-	str := `{"name": "` + args[0] + `", "color": "` + args[1] + `", "size": ` + strconv.Itoa(val) + `, "user": "` + args[3] + `"}`
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument must be a non-empty string")
+	}
+	if len(args[2]) <= 0 {
+		return nil, errors.New("3rd argument must be a non-empty string")
+	}
+	if len(args[3]) <= 0 {
+		return nil, errors.New("4th argument must be a non-empty string")
+	}
+	
+	size, err := strconv.Atoi(args[2])
+	if err != nil {
+		return nil, errors.New("3rd argument must be a numeric string")
+	}
+	
+	color := strings.ToLower(args[1])
+	user := strings.ToLower(args[3])
 
+	str := `{"name": "` + args[0] + `", "color": "` + color + `", "size": ` + strconv.Itoa(size) + `, "user": "` + user + `"}`
 	err = stub.PutState(args[0], []byte(str))								//store marble with id as key
 	if err != nil {
 		return nil, err
 	}
-	t.remember_me(stub, args[0])
+		
+	//get the marble index
+	marblesAsBytes, err := stub.GetState(marbleIndexStr)
+	if err != nil {
+		return nil, errors.New("Failed to get marble index")
+	}
+	var marbleIndex []string
+	json.Unmarshal(marblesAsBytes, &marbleIndex)							//un stringify it aka JSON.parse()
 	
+	//append
 	marbleIndex = append(marbleIndex, args[0])								//add marble name to index list
+	fmt.Println("! marble index: ", marbleIndex)
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
-	err = stub.PutState("marbleIndex", jsonAsBytes)							//store name of marble
+	err = stub.PutState(marbleIndexStr, jsonAsBytes)						//store name of marble
 
+	fmt.Println("- end init marble")
 	return nil, nil
 }
 
@@ -244,13 +254,20 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 	
+	//   0       1
+	// "name", "bob"
+	if len(args) < 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 2")
+	}
+	
+	fmt.Println("- start set user")
+	fmt.Println(args[0] + " - " + args[1])
 	marbleAsBytes, err := stub.GetState(args[0])
 	if err != nil {
 		return nil, errors.New("Failed to get thing")
 	}
 	res := Marble{}
 	json.Unmarshal(marbleAsBytes, &res)										//un stringify it aka JSON.parse()
-	fmt.Println(res)
 	res.User = args[1]														//change the user
 	
 	jsonAsBytes, _ := json.Marshal(res)
@@ -259,5 +276,6 @@ func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]b
 		return nil, err
 	}
 	
+	fmt.Println("- end set user")
 	return nil, nil
 }
